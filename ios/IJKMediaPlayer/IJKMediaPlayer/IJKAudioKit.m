@@ -74,8 +74,10 @@
             [[AVAudioSession sharedInstance] setActive:NO error:nil];
         } @catch (NSException *exception) {
             NSLog(@"failed to inactive AVAudioSession\n");
+            return false;
         }
     }
+    return true;
 }
 
 - (void)handleInterruption:(NSNotification *)notification
