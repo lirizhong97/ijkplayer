@@ -2,8 +2,8 @@
 
  Platform | Build Status
  -------- | ------------
- Android | [![Build Status](https://travis-ci.org/Bilibili/ci-ijk-ffmpeg-android.svg?branch=master)](https://travis-ci.org/Bilibili/ci-ijk-ffmpeg-android)
- iOS | [![Build Status](https://travis-ci.org/Bilibili/ci-ijk-ffmpeg-ios.svg?branch=master)](https://travis-ci.org/Bilibili/ci-ijk-ffmpeg-ios)
+ Android | [![Build Status](https://travis-ci.org/lirizhong97/ci-ijk-ffmpeg-android.svg?branch=master)](https://travis-ci.org/lirizhong97/ci-ijk-ffmpeg-android)
+ iOS | [![Build Status](https://travis-ci.org/lirizhong97/ci-ijk-ffmpeg-ios.svg?branch=master)](https://travis-ci.org/lirizhong97/ci-ijk-ffmpeg-ios)
 
 Video player based on [ffplay](http://ffmpeg.org)
 
@@ -135,7 +135,7 @@ sudo dpkg-reconfigure dash
 
 ### Build Android
 ```
-git clone https://github.com/Bilibili/ijkplayer.git ijkplayer-android
+git clone https://github.com/lirizhong97/ijkplayer.git ijkplayer-android
 cd ijkplayer-android
 git checkout -B latest k0.8.8
 
@@ -189,7 +189,7 @@ cd ..
 
 ### Build iOS
 ```
-git clone https://github.com/Bilibili/ijkplayer.git ijkplayer-ios
+git clone https://github.com/lirizhong97/ijkplayer.git ijkplayer-ios
 cd ijkplayer-ios
 git checkout -B latest k0.8.8
 

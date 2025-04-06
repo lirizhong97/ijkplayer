@@ -17,7 +17,7 @@
 #
 
 IJK_OPENSSL_UPSTREAM=https://github.com/openssl/openssl
-IJK_OPENSSL_FORK=https://github.com/Bilibili/openssl.git
+IJK_OPENSSL_FORK=https://github.com/lirizhong97/openssl.git
 IJK_OPENSSL_COMMIT=OpenSSL_1_0_2n
 IJK_OPENSSL_LOCAL_REPO=extra/openssl
 
