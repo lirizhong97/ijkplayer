@@ -3592,6 +3592,7 @@ static int read_thread(void *arg)
                    && !(is->video_st && (is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC))) {
             if (!pkt->gop_valid) {
                 av_log(ffp, AV_LOG_DEBUG, "Skipping frame in invalid GOP\n");
+                av_packet_unref(pkt);
             } else {
                 packet_queue_put(&is->videoq, pkt);
             }
