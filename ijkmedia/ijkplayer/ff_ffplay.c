@@ -54,6 +54,7 @@
 #include "libswscale/swscale.h"
 #include "libavutil/opt.h"
 #include "libavcodec/avfft.h"
+#include "libavcodec/h264dec.h"
 #include "libswresample/swresample.h"
 
 #if CONFIG_AVFILTER
