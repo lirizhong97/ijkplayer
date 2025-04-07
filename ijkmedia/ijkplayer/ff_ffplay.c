@@ -54,7 +54,6 @@
 #include "libswscale/swscale.h"
 #include "libavutil/opt.h"
 #include "libavcodec/avfft.h"
-#include "libavcodec/h264dec.h"
 #include "libswresample/swresample.h"
 
 #if CONFIG_AVFILTER
@@ -3591,8 +3590,7 @@ static int read_thread(void *arg)
             packet_queue_put(&is->audioq, pkt);
         } else if (pkt->stream_index == is->video_stream && pkt_in_play_range
                    && !(is->video_st && (is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC))) {
-            H264Context *h = ic->priv_data;
-            if (h && !h->gop_valid) {
+            if (!pkt->gop_valid) {
                 av_log(ffp, AV_LOG_DEBUG, "Skipping frame in invalid GOP\n");
             } else {
                 packet_queue_put(&is->videoq, pkt);
