@@ -55,7 +55,7 @@ FF_DEP_LIBSOXR_LIB=
 FF_CFG_FLAGS=
 
 FF_EXTRA_CFLAGS=
-FF_EXTRA_LDFLAGS=
+FF_EXTRA_LDFLAGS="-Wl,--allow-multiple-definition"
 FF_DEP_LIBS=
 
 FF_MODULE_DIRS="compat libavcodec libavfilter libavformat libavutil libswresample libswscale"
