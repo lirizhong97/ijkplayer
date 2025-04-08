@@ -2212,12 +2212,18 @@ static int ffplay_video_thread(void *arg)
     }
 
     for (;;) {
+        frame->flags &= ~AV_PKT_FLAG_FRAME_ERROR;
         ret = get_video_frame(ffp, frame);
-        av_log(NULL, AV_LOG_DEBUG, "MYDEBUG ffplay_video_thread get_video_frame frame:%p\n", convert_frame_count);
+        //av_log(NULL, AV_LOG_DEBUG, "MYDEBUG ffplay_video_thread get_video_frame frame:%p\n", convert_frame_count);
         if (ret < 0)
             goto the_end;
         if (!ret)
             continue;
+        if (frame->flags & AV_PKT_FLAG_FRAME_ERROR) {
+            av_frame_unref(frame);
+            av_log(NULL, AV_LOG_DEBUG, "AV frame error, skip display.\n");
+            continue;
+        }
 
         if (ffp->get_frame_mode) {
             if (!ffp->get_img_info || ffp->get_img_info->count <= 0) {
