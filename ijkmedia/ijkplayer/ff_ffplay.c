@@ -2213,6 +2213,7 @@ static int ffplay_video_thread(void *arg)
 
     for (;;) {
         ret = get_video_frame(ffp, frame);
+        av_log(NULL, AV_LOG_DEBUG, "MYDEBUG ffplay_video_thread get_video_frame frame:%p\n", convert_frame_count);
         if (ret < 0)
             goto the_end;
         if (!ret)
@@ -3590,12 +3591,7 @@ static int read_thread(void *arg)
             packet_queue_put(&is->audioq, pkt);
         } else if (pkt->stream_index == is->video_stream && pkt_in_play_range
                    && !(is->video_st && (is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC))) {
-            if (!pkt->gop_valid) {
-                av_log(ffp, AV_LOG_DEBUG, "Skipping frame in invalid GOP\n");
-                av_packet_unref(pkt);
-            } else {
-                packet_queue_put(&is->videoq, pkt);
-            }
+            packet_queue_put(&is->videoq, pkt);
         } else if (pkt->stream_index == is->subtitle_stream && pkt_in_play_range) {
             packet_queue_put(&is->subtitleq, pkt);
         } else {
