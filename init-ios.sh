@@ -95,4 +95,5 @@ case "$FF_TARGET" in
 esac
 
 sync_ff_version
+./init-ios-config.sh
 
