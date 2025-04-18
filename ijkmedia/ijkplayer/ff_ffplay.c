@@ -47,6 +47,7 @@
 #include "libavutil/samplefmt.h"
 #include "libavutil/avassert.h"
 #include "libavutil/time.h"
+#include "libavutil/optimization.h" //Added by lirizhong97
 #include "libavformat/avformat.h"
 #if CONFIG_AVDEVICE
 #include "libavdevice/avdevice.h"
@@ -1320,7 +1321,9 @@ static void video_refresh(FFPlayer *opaque, double *remaining_time)
             video_display2(ffp);
             is->last_vis_time = time;
         }
-        *remaining_time = FFMIN(*remaining_time, is->last_vis_time + ffp->rdftspeed - time);
+        //Modified by lirizhong97
+        //*remaining_time = FFMIN(*remaining_time, is->last_vis_time + ffp->rdftspeed - time);
+        *remaining_time = 0; // 尽可能立即渲染
     }
 
     if (is->video_st) {
@@ -1354,7 +1357,8 @@ retry:
             if (isnan(is->frame_timer) || time < is->frame_timer)
                 is->frame_timer = time;
             if (time < is->frame_timer + delay) {
-                *remaining_time = FFMIN(is->frame_timer + delay - time, *remaining_time);
+                //*remaining_time = FFMIN(is->frame_timer + delay - time, *remaining_time);
+                *remaining_time = 0; // 尽可能立即渲染
                 goto display;
             }
 
@@ -2212,11 +2216,17 @@ static int ffplay_video_thread(void *arg)
     }
 
     for (;;) {
+        //Added by lirizhong97
+        av_optimization_decode_err(0);
         ret = get_video_frame(ffp, frame);
         if (ret < 0)
             goto the_end;
         if (!ret)
             continue;
+        if(av_optimization_is_decode_err()) {//Added by lirizhong97
+            av_log(NULL, AV_LOG_ERROR, "hit decode error.\n");
+            continue;
+        }
 
         if (ffp->get_frame_mode) {
             if (!ffp->get_img_info || ffp->get_img_info->count <= 0) {
@@ -3185,6 +3195,8 @@ static int read_thread(void *arg)
         ffp->seek_by_bytes = !!(ic->iformat->flags & AVFMT_TS_DISCONT) && strcmp("ogg", ic->iformat->name);
 
     is->max_frame_duration = (ic->iformat->flags & AVFMT_TS_DISCONT) ? 10.0 : 3600.0;
+    //Modified by lirizhong97
+    //is->max_frame_duration = 10.0;
     is->max_frame_duration = 10.0;
     av_log(ffp, AV_LOG_INFO, "max_frame_duration: %.3f\n", is->max_frame_duration);
 
@@ -3512,6 +3524,8 @@ static int read_thread(void *arg)
             }
         }
         pkt->flags = 0;
+        //Added by lirizhong97
+        av_optimization_frame_err(0);
         ret = av_read_frame(ic, pkt);
         if (ret < 0) {
             int pb_eof = 0;
@@ -3566,6 +3580,11 @@ static int read_thread(void *arg)
             is->eof = 0;
         }
 
+        if (pkt->stream_index == is->video_stream && (pkt->flags & AV_PKT_FLAG_KEY)) {
+            av_optimization_frame_err(0);
+            av_optimization_decode_err(0);
+        }
+
         if (pkt->flags & AV_PKT_FLAG_DISCONTINUITY) {
             if (is->audio_stream >= 0) {
                 packet_queue_put(&is->audioq, &flush_pkt);
@@ -3590,7 +3609,12 @@ static int read_thread(void *arg)
             packet_queue_put(&is->audioq, pkt);
         } else if (pkt->stream_index == is->video_stream && pkt_in_play_range
                    && !(is->video_st && (is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC))) {
-            packet_queue_put(&is->videoq, pkt);
+            if (!av_optimization_is_frame_err()) {//Added by lirizhong97
+                packet_queue_put(&is->videoq, pkt);
+            } else {//release the packet when frame error during total GOP
+                av_packet_unref(pkt);
+                av_log(NULL, AV_LOG_ERROR, "hit frame error.\n");
+            }
         } else if (pkt->stream_index == is->subtitle_stream && pkt_in_play_range) {
             packet_queue_put(&is->subtitleq, pkt);
         } else {
@@ -3696,7 +3720,9 @@ static VideoState *stream_open(FFPlayer *ffp, const char *filename, AVInputForma
     ffp->startup_volume = av_clip(SDL_MIX_MAXVOLUME * ffp->startup_volume / 100, 0, SDL_MIX_MAXVOLUME);
     is->audio_volume = ffp->startup_volume;
     is->muted = 0;
-    is->av_sync_type = ffp->av_sync_type;
+    //Modified by lirizhong97
+    //is->av_sync_type = ffp->av_sync_type;
+    is->av_sync_type = AV_SYNC_VIDEO_MASTER;
 
     is->play_mutex = SDL_CreateMutex();
     is->accurate_seek_mutex = SDL_CreateMutex();
@@ -3724,7 +3750,8 @@ static VideoState *stream_open(FFPlayer *ffp, const char *filename, AVInputForma
         }
     }
     is->initialized_decoder = 1;
-
+    //Added by lirizhong97
+    av_optimization_init();
     return is;
 fail:
     is->initialized_decoder = 1;
