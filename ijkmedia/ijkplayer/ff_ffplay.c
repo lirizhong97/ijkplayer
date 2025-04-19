@@ -141,6 +141,122 @@ int64_t get_valid_channel_layout(int64_t channel_layout, int channels)
 
 static void free_picture(Frame *vp);
 
+//Added by lirizhong97
+static void drop_queue_until_pts(PacketQueue *q, int64_t drop_to_pts) {
+    MyAVPacketList *pkt1 = NULL;
+    int del_nb_packets = 0;
+    for (;;) {
+        pkt1 = q->first_pkt;
+        if (!pkt1) {
+            break;
+        }
+        // video need key frame? 这里如果不判断是否是关键帧会导致视频画面花屏。但是这样会导致全部清空的可能也会出现花屏
+        // 所以这里推流端设置好 GOP 的大小，如果 max_cached_duration > 2 * GOP，可以尽可能规避全部清空
+        // 也可以在调用control_queue_duration之前判断新进来的视频pkt是否是关键帧，这样即使全部清空了也不会花屏
+        if ((pkt1->pkt.flags & AV_PKT_FLAG_KEY) && pkt1->pkt.pts >= drop_to_pts) {
+//        if (pkt1->pkt.pts >= drop_to_pts) {
+            break;
+        }
+        q->first_pkt = pkt1->next;
+        if (!q->first_pkt)
+            q->last_pkt = NULL;
+        q->nb_packets--;
+        ++del_nb_packets;
+        q->size -= pkt1->pkt.size + sizeof(*pkt1);
+        if (pkt1->pkt.duration > 0)
+            q->duration -= pkt1->pkt.duration;
+        av_free_packet(&pkt1->pkt);
+#ifdef FFP_MERGE
+        av_free(pkt1);
+#else
+        pkt1->next = q->recycle_pkt;
+        q->recycle_pkt = pkt1;
+#endif
+    }
+    av_log(NULL, AV_LOG_INFO, "233 del_nb_packets = %d.\n", del_nb_packets);
+}
+
+//Added by lirizhong97
+static void control_video_queue_duration(FFPlayer *ffp, VideoState *is) {
+    int time_base_valid = 0;
+    int64_t cached_duration = -1;
+    int nb_packets = 0;
+    int64_t duration = 0;
+    int64_t drop_to_pts = 0;
+    
+    //Lock
+    SDL_LockMutex(is->videoq.mutex);
+    
+    time_base_valid = is->video_st->time_base.den > 0 && is->video_st->time_base.num > 0;
+    nb_packets = is->videoq.nb_packets;
+    
+    // TOFIX: if time_base_valid false, calc duration with nb_packets and framerate
+    // 为什么不用 videoq.duration？因为遇到过videoq.duration 一直为0，audioq也一样
+    if (time_base_valid) {
+        if (is->videoq.first_pkt && is->videoq.last_pkt) {
+            duration = is->videoq.last_pkt->pkt.pts - is->videoq.first_pkt->pkt.pts;
+            cached_duration = duration * av_q2d(is->video_st->time_base) * 1000;
+        }
+    }
+    
+    if (cached_duration > is->max_cached_duration) {
+        // drop
+        av_log(NULL, AV_LOG_INFO, "233 video cached_duration = %lld, nb_packets = %d.\n", cached_duration, nb_packets);
+        drop_to_pts = is->videoq.last_pkt->pkt.pts - (duration / 2);  // 这里删掉一半，你也可以自己修改，依据设置进来的max_cached_duration大小
+        drop_queue_until_pts(&is->videoq, drop_to_pts);
+    }
+    
+    //Unlock
+    SDL_UnlockMutex(is->videoq.mutex);
+}
+
+//Added by lirizhong97
+static void control_audio_queue_duration(FFPlayer *ffp, VideoState *is) {
+    int time_base_valid = 0;
+    int64_t cached_duration = -1;
+    int nb_packets = 0;
+    int64_t duration = 0;
+    int64_t drop_to_pts = 0;
+    
+    //Lock
+    SDL_LockMutex(is->audioq.mutex);
+    
+    time_base_valid = is->audio_st->time_base.den > 0 && is->audio_st->time_base.num > 0;
+    nb_packets = is->audioq.nb_packets;
+    
+    // TOFIX: if time_base_valid false, calc duration with nb_packets and samplerate
+    if (time_base_valid) {
+        if (is->audioq.first_pkt && is->audioq.last_pkt) {
+            duration = is->audioq.last_pkt->pkt.pts - is->audioq.first_pkt->pkt.pts;
+            cached_duration = duration * av_q2d(is->audio_st->time_base) * 1000;
+        }
+    }
+    
+    if (cached_duration > is->max_cached_duration) {
+        // drop
+        av_log(NULL, AV_LOG_INFO, "233 audio cached_duration = %lld, nb_packets = %d.\n", cached_duration, nb_packets);
+        drop_to_pts = is->audioq.last_pkt->pkt.pts - (duration / 2);
+        drop_queue_until_pts(&is->audioq, drop_to_pts);
+    }
+    
+    //Unlock
+    SDL_UnlockMutex(is->audioq.mutex);
+}
+
+//Added by lirizhong97
+static void control_queue_duration(FFPlayer *ffp, VideoState *is) {
+    if (is->max_cached_duration <= 0) {
+        return;
+    }
+    
+    if (is->audio_st) {
+        return control_audio_queue_duration(ffp, is);
+    }
+    if (is->video_st) {
+        return control_video_queue_duration(ffp, is);
+    }
+}
+
 static int packet_queue_put_private(PacketQueue *q, AVPacket *pkt)
 {
     MyAVPacketList *pkt1;
@@ -3201,7 +3317,7 @@ static int read_thread(void *arg)
     is->max_frame_duration = (ic->iformat->flags & AVFMT_TS_DISCONT) ? 10.0 : 3600.0;
     //Modified by lirizhong97
     //is->max_frame_duration = 10.0;
-    is->max_frame_duration = 10.0;
+    is->max_frame_duration = 5.0;
     av_log(ffp, AV_LOG_INFO, "max_frame_duration: %.3f\n", is->max_frame_duration);
 
 #ifdef FFP_MERGE
@@ -3223,8 +3339,21 @@ static int read_thread(void *arg)
                     is->filename, (double)timestamp / AV_TIME_BASE);
         }
     }
-
-    is->realtime = is_realtime(ic);
+    //Modified by lirizhong97
+    //把原来的realtime设置为0，并从外部设置获取max_cached_duration的值
+    //is->realtime = is_realtime(ic);
+    s->realtime = 0;
+    AVDictionaryEntry *e = av_dict_get(ffp->player_opts, "max_cached_duration", NULL, 0);
+    if (e) {
+        int max_cached_duration = atoi(e->value);
+        if (max_cached_duration <= 0) {
+            is->max_cached_duration = 0;
+        } else {
+            is->max_cached_duration = max_cached_duration;
+        }
+    } else {
+        is->max_cached_duration = 0;
+    }
 
     av_dump_format(ic, 0, is->filename, 0);
 
@@ -3599,6 +3728,12 @@ static int read_thread(void *arg)
             if (is->video_stream >= 0) {
                 packet_queue_put(&is->videoq, &flush_pkt);
             }
+        }
+
+        //Added by lirizhong97
+        //每次读取一个pkt，都去判断处理
+        if (is->max_cached_duration > 0) {
+            control_queue_duration(ffp, is);
         }
 
         /* check if packet is in play range specified by user, then queue, otherwise discard */
