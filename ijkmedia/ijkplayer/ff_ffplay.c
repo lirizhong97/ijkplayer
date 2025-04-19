@@ -3342,7 +3342,7 @@ static int read_thread(void *arg)
     //Modified by lirizhong97
     //把原来的realtime设置为0，并从外部设置获取max_cached_duration的值
     //is->realtime = is_realtime(ic);
-    s->realtime = 0;
+    is->realtime = 0;
     AVDictionaryEntry *e = av_dict_get(ffp->player_opts, "max_cached_duration", NULL, 0);
     if (e) {
         int max_cached_duration = atoi(e->value);
