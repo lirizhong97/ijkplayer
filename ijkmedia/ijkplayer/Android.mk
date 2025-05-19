@@ -80,6 +80,9 @@ LOCAL_STATIC_LIBRARIES := android-ndk-profiler ijksoundtouch
 
 LOCAL_MODULE := ijkplayer
 
+LOCAL_LDFLAGS += -Wl,z,max-page-size=65536
+LOCAL_LDFLAGS += -Wl,z,common-page-size=65536
+
 VERSION_SH  = $(LOCAL_PATH)/version.sh
 VERSION_H   = ijkversion.h
 $(info $(shell ($(VERSION_SH) $(LOCAL_PATH) $(VERSION_H))))
