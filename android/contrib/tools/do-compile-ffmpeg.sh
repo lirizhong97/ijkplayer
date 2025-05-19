@@ -55,7 +55,7 @@ FF_DEP_LIBSOXR_LIB=
 FF_CFG_FLAGS=
 
 FF_EXTRA_CFLAGS=
-FF_EXTRA_LDFLAGS="-Wl,--allow-multiple-definition,-Wl,-z,max-page-size=65536,-Wl,-z,common-page-size=65536"
+FF_EXTRA_LDFLAGS="-Wl,--allow-multiple-definition -Wl,-z,max-page-size=65536 -Wl,-z,common-page-size=65536"
 FF_DEP_LIBS=
 
 FF_MODULE_DIRS="compat libavcodec libavfilter libavformat libavutil libswresample libswscale"
