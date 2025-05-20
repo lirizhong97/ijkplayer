@@ -22,10 +22,18 @@ if [ -z "$ANDROID_NDK" -o -z "$ANDROID_NDK" ]; then
     exit 1
 fi
 
+if [ -z "$NDK_MAJOR_VERSION" ]; then
+    echo "You must define NDK_MAJOR_VERSION before starting.\n"
+    exit 1
+fi
+
 REQUEST_TARGET=$1
 REQUEST_SUB_CMD=$2
 ACT_ABI_32="armv5 armv7a x86"
 ACT_ABI_64="armv5 armv7a arm64 x86 x86_64"
+if [ "$NDK_MAJOR_VERSION" -eq 22 ]; then
+    ACT_ABI_64="arm64 x86_64"
+fi
 ACT_ABI_ALL=$ACT_ABI_64
 UNAME_S=$(uname -s)
 

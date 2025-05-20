@@ -18,16 +18,32 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 APP_OPTIM := release
-APP_PLATFORM := android-21
+APP_PLATFORM := android-9
+ifeq ($(NDK_MAJOR_VERSION),22)
+    APP_PLATFORM := android-21
+endif
 APP_ABI := armeabi-v7a
-# NDK_TOOLCHAIN_VERSION=4.9
+NDK_TOOLCHAIN_VERSION=4.9
+ifeq ($(NDK_MAJOR_VERSION),22)
+    NDK_TOOLCHAIN_VERSION=
+endif
 APP_PIE := false
 
-APP_STL := c++_static
+APP_STL := stlport_static
+ifeq ($(NDK_MAJOR_VERSION),22)
+    APP_STL := c++_static
+endif
 
 APP_CFLAGS := -O3 -Wall -pipe \
     -ffast-math \
-    -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0 \
     -fstrict-aliasing -Werror=strict-aliasing \
-    -Wa,--noexecstack \
+    -Wno-psabi -Wa,--noexecstack \
     -DANDROID -DNDEBUG
+ifeq ($(NDK_MAJOR_VERSION),22)
+    APP_CFLAGS := -O3 -Wall -pipe \
+        -ffast-math \
+        -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0 \
+        -fstrict-aliasing -Werror=strict-aliasing \
+        -Wa,--noexecstack \
+        -DANDROID -DNDEBUG
+endif

@@ -26,7 +26,11 @@ include $(CLEAR_VARS)
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
 LOCAL_CFLAGS += -mfloat-abi=soft
 endif
-# LOCAL_CFLAGS += -std=c99
+ifeq ($(NDK_MAJOR_VERSION),22)
+	
+else
+	LOCAL_CFLAGS += -std=c99
+endif
 LOCAL_LDLIBS += -llog -landroid
 
 LOCAL_C_INCLUDES += $(LOCAL_PATH)
@@ -80,7 +84,9 @@ LOCAL_STATIC_LIBRARIES := android-ndk-profiler ijksoundtouch
 
 LOCAL_MODULE := ijkplayer
 
-LOCAL_LDFLAGS += -Wl,-z,max-page-size=16384
+ifeq ($(NDK_MAJOR_VERSION),22)
+	LOCAL_LDFLAGS += -Wl,-z,max-page-size=16384
+endif
 
 VERSION_SH  = $(LOCAL_PATH)/version.sh
 VERSION_H   = ijkversion.h

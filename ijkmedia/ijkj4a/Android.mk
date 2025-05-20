@@ -19,7 +19,11 @@
 LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
-# LOCAL_CFLAGS += -std=c99
+ifeq ($(NDK_MAJOR_VERSION),22)
+    
+else
+	LOCAL_CFLAGS += -std=c99
+endif
 
 LOCAL_C_INCLUDES += $(LOCAL_PATH)
 LOCAL_C_INCLUDES += $(realpath $(LOCAL_PATH))
@@ -42,7 +46,9 @@ LOCAL_SRC_FILES += j4a/class/tv/danmaku/ijk/media/player/IjkMediaPlayer.c
 LOCAL_SRC_FILES += j4au/class/android/media/AudioTrack.util.c
 LOCAL_SRC_FILES += j4au/class/java/nio/ByteBuffer.util.c
 
-LOCAL_LDFLAGS += -Wl,-z,max-page-size=16384
+ifeq ($(NDK_MAJOR_VERSION),22)
+	LOCAL_LDFLAGS += -Wl,-z,max-page-size=16384
+endif
 
 LOCAL_MODULE := ijkj4a
 include $(BUILD_STATIC_LIBRARY)

@@ -33,6 +33,10 @@ if [ -z "$FF_ARCH" ]; then
     exit 1
 fi
 
+if [ -z "$NDK_MAJOR_VERSION" ]; then
+    echo "You must define NDK_MAJOR_VERSION before starting.\n"
+    exit 1
+fi
 
 FF_BUILD_ROOT=`pwd`
 FF_ANDROID_PLATFORM=android-21
@@ -46,8 +50,10 @@ FF_CFG_FLAGS=
 FF_PLATFORM_CFG_FLAGS=
 
 FF_EXTRA_CFLAGS=
-FF_EXTRA_LDFLAGS="-Wl,-z,max-page-size=16384"
-
+FF_EXTRA_LDFLAGS=
+if [ "$NDK_MAJOR_VERSION" -eq 22 ]; then
+    FF_EXTRA_LDFLAGS="-Wl,-z,max-page-size=16384"
+fi
 
 
 #--------------------

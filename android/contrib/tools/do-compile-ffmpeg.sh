@@ -25,6 +25,10 @@ echo "[*] check env $1"
 echo "===================="
 set -e
 
+if [ -z "$NDK_MAJOR_VERSION" ]; then
+    echo "You must define NDK_MAJOR_VERSION before starting.\n"
+    exit 1
+fi
 
 #--------------------
 # common defines
@@ -40,8 +44,10 @@ fi
 
 
 FF_BUILD_ROOT=`pwd`
-FF_ANDROID_PLATFORM=android-21
-
+FF_ANDROID_PLATFORM=android-9
+if [ "$NDK_MAJOR_VERSION" -eq 22 ]; then
+    FF_ANDROID_PLATFORM=android-21
+fi
 
 FF_BUILD_NAME=
 FF_SOURCE=
@@ -55,7 +61,10 @@ FF_DEP_LIBSOXR_LIB=
 FF_CFG_FLAGS=
 
 FF_EXTRA_CFLAGS=
-FF_EXTRA_LDFLAGS="-Wl,--allow-multiple-definition -Wl,-z,max-page-size=16384 -Wl,-Bsymbolic"
+FF_EXTRA_LDFLAGS="-Wl,--allow-multiple-definition"
+if [ "$NDK_MAJOR_VERSION" -eq 22 ]; then
+    FF_EXTRA_LDFLAGS="-Wl,--allow-multiple-definition -Wl,-z,max-page-size=16384 -Wl,-Bsymbolic"
+fi
 FF_DEP_LIBS=
 
 FF_MODULE_DIRS="compat libavcodec libavfilter libavformat libavutil libswresample libswscale"
