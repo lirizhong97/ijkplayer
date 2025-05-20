@@ -39,7 +39,10 @@ if [ -z "$NDK_MAJOR_VERSION" ]; then
 fi
 
 FF_BUILD_ROOT=`pwd`
-FF_ANDROID_PLATFORM=android-21
+FF_ANDROID_PLATFORM=android-9
+if [ "$NDK_MAJOR_VERSION" -eq 22 ]; then
+    FF_ANDROID_PLATFORM=android-21
+fi
 
 
 FF_BUILD_NAME=
